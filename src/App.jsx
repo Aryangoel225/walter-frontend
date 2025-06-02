@@ -1,4 +1,5 @@
 import Header from "./components/Header";
+import QueryInput from "./components/QueryInput";
 import { useState } from "react";
 
 
@@ -19,18 +20,11 @@ function App() {
         </div>
 
          {/* Main Content */}
-          <div className="w-3/4 bg-gray-50 p-6">
-
-            <div className="flex justify-center mb-4">
-              <h1 className="text-4xl font-bold text-green-700 mb-2">
-                  Continuous Intelligence Generator
-              </h1>
-               <p className="text-gray-600">
-                Enter your intelligence query below
-              </p>
-            </div>
+          <div className="w-3/4 bg-gray-50 p-6 flex flex-col items-center">
+            <Header/>
             {/* Rest of main content will go here */}
-              <div className="text-center text-gray-400">
+              <div className="text-gray-400">
+                <QueryInput/>
                 Main content components will go here
               </div>
           </div>

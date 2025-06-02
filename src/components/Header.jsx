@@ -1,10 +1,17 @@
 
 
-export default function Header() {
+export default function Header({ 
+  title = "Continuous Intelligence Generator", 
+  subtitle = "Enter your intelligence query below" 
+}) {
   return (
-    <div className="mb-4">
-      <h1 >Continuous Intelligence Generator</h1>
-      <p>Enter your intelligence query below</p>
+    <div className="text-center mb-6">
+      <h1 className="text-4xl font-bold text-green-700 mb-2">
+        {title}
+      </h1>
+      <p className="text-gray-600">
+        {subtitle}
+      </p>
     </div>
   );
 }
