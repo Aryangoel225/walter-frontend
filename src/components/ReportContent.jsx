@@ -44,7 +44,6 @@ export default function ReportContent({ currentQueryId, isLoading }) {
         </div>
       </div>
 
-      // Add this to your ReportContent for testing
 <div className="space-y-4">
   {Array.from({length: 20}, (_, i) => (
     <div key={i} className="bg-white p-4 rounded border">
