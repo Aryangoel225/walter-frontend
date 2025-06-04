@@ -10,6 +10,35 @@ function App() {
   const [activeTab, setActiveTab] = useState("report");
   const [isLoading, setIsLoading] = useState(false);
   const [sections, setSections] = useState([]);
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [viewAllMode, setViewAllMode] = useState(true);
+
+  // Handle section selection from sidebar
+  const handleSectionSelect = (sectionId, isViewAllMode) => {
+    if (isViewAllMode) {
+      // View All Mode: Just scroll to section in full report
+      setSelectedSectionId(null); // Clear any individual selection
+      // Scroll will happen after render
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Individual Mode: Show only that section
+      setSelectedSectionId(sectionId);
+      setViewAllMode(false);
+    }
+  };
+
+  // Handle View All toggle from sidebar
+  const handleViewAllToggle = (isViewAll) => {
+    setViewAllMode(isViewAll);
+    if (isViewAll) {
+      setSelectedSectionId(null); // Clear individual selection
+    }
+  };
 
   async function handleQuerySubmit(query) {
     console.log("Submitting query:", query);
@@ -27,7 +56,6 @@ function App() {
     ]);
 
     console.log("Query submitted successfully");
-    console.log({ currentQueryId });
     setIsLoading(false);
   }
 
@@ -42,7 +70,14 @@ function App() {
         <div className="mb-4">
           <h3 className="text-lg font-semibold">Report Sections</h3>
         </div>
-        <SidebarSections sections={sections} currentQueryId={currentQueryId} />
+        <SidebarSections
+          sections={sections}
+          currentQueryId={currentQueryId}
+          onSectionSelect={handleSectionSelect}
+          onViewAllToggle={handleViewAllToggle}
+          viewAllMode={viewAllMode}
+          selectedSectionId={selectedSectionId}
+        />
       </div>
 
       {/* Main Content */}
@@ -56,6 +91,9 @@ function App() {
           <ReportContent
             currentQueryId={currentQueryId}
             isLoading={isLoading}
+            sections={sections}              // ← Now passed!
+            selectedSectionId={selectedSectionId}  // ← Now passed!
+            viewAllMode={viewAllMode}        // ← Now passed!
           />
         )}
         {activeTab === "knowledge-graph" && (
