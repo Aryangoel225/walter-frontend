@@ -3,13 +3,13 @@ import { useState } from "react";
 export default function SidebarSections({
   sections = [],
   currentQueryId = null,
-  viewAllMode = true,        // ← Use this prop, don't create conflicting state
+  viewAllMode = true,       
   selectedSectionId = null,
-  onSectionSelect,          // ← Callback to parent
-  onViewAllToggle,          // ← Callback to parent
+  onSectionSelect,          
+  onViewAllToggle,        
 }) {
   const [isSectionsExpanded, setIsSectionsExpanded] = useState(false);
-  // ← Removed: const [viewAllMode, setViewAllMode] = useState(true);
+
 
   const renderEmptyState = () => (
     <div className="space-y-1">
