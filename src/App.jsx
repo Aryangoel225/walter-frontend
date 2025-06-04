@@ -3,6 +3,7 @@ import QueryInput from "./components/QueryInput";
 import TabNavigation from "./components/TabNavigation";
 import ReportContent from "./components/ReportContent";
 import SidebarSections from "./components/SidebarSections";
+import QueryHistory from "./components/QueryHistory";
 import { useState } from "react";
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const [sections, setSections] = useState([]);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [viewAllMode, setViewAllMode] = useState(true);
+  const [queryHistory, setQueryHistory] = useState([]);
 
   // Handle section selection from sidebar
   const handleSectionSelect = (sectionId, isViewAllMode) => {
@@ -22,7 +24,7 @@ function App() {
       setTimeout(() => {
         const element = document.getElementById(sectionId);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
+          element.scrollIntoView({ behavior: "smooth" });
         }
       }, 100);
     } else {
@@ -43,12 +45,21 @@ function App() {
   async function handleQuerySubmit(query) {
     console.log("Submitting query:", query);
     setIsLoading(true);
-    // Simulate API delay
+
+    const id = `query_${Date.now()}`; // Generate once
+    const newQuery = {
+      id,
+      title: query,
+      date: new Date().toISOString(),
+    };
+
+    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    setCurrentQueryId(`query_${Date.now()}`);
+
+    setQueryHistory((prev) => [newQuery, ...prev]);
+    setCurrentQueryId(id);
     setActiveTab("report");
 
-    // Simulate getting sections from API
     setSections([
       { id: "section1", title: "Executive Summary" },
       { id: "section2", title: "Key Findings" },
@@ -63,6 +74,20 @@ function App() {
     setActiveTab(newTab);
   }
 
+  function handleQuerySelect(queryId) {
+    setCurrentQueryId(queryId);
+    setActiveTab("report");
+    setSelectedSectionId(null);
+  }
+
+  function handleQueryDelete(queryId) {
+    setQueryHistory((prev) => prev.filter((q) => q.id !== queryId));
+    // If user deletes the currently active query, reset it
+    if (queryId === currentQueryId) {
+      setCurrentQueryId(null);
+    }
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* SideBar */}
@@ -70,13 +95,22 @@ function App() {
         <div className="mb-4">
           <h3 className="text-lg font-semibold">Report Sections</h3>
         </div>
-        <SidebarSections
-          sections={sections}
+        {/* Add margin bottom to create space between sections */}
+        <div className="mb-6">
+          <SidebarSections
+            sections={sections}
+            currentQueryId={currentQueryId}
+            onSectionSelect={handleSectionSelect}
+            onViewAllToggle={handleViewAllToggle}
+            viewAllMode={viewAllMode}
+            selectedSectionId={selectedSectionId}
+          />
+        </div>
+        <QueryHistory
+          queryArray={queryHistory}
+          onQuerySelect={handleQuerySelect}
           currentQueryId={currentQueryId}
-          onSectionSelect={handleSectionSelect}
-          onViewAllToggle={handleViewAllToggle}
-          viewAllMode={viewAllMode}
-          selectedSectionId={selectedSectionId}
+          onQueryDelete={handleQueryDelete}
         />
       </div>
 
@@ -91,9 +125,9 @@ function App() {
           <ReportContent
             currentQueryId={currentQueryId}
             isLoading={isLoading}
-            sections={sections}              // ← Now passed!
-            selectedSectionId={selectedSectionId}  // ← Now passed!
-            viewAllMode={viewAllMode}        // ← Now passed!
+            sections={sections} // ← Now passed!
+            selectedSectionId={selectedSectionId} // ← Now passed!
+            viewAllMode={viewAllMode} // ← Now passed!
           />
         )}
         {activeTab === "knowledge-graph" && (
