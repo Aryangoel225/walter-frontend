@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { Bell, X, Clock, AlertTriangle, Info, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Bell, Clock, AlertTriangle, Info, Trash2 } from "lucide-react";
 
-function NotificationBell({
+export default function NotificationBell({
   notifications,
   onNotificationClick,
   onMarkAllRead,
+  onQueryRerun,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -64,13 +65,17 @@ function NotificationBell({
         )}
       </button>
 
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-
       {/* Dropdown */}
       {isOpen && (
         <>
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-20 max-h-96 overflow-hidden">
+          {/* Backdrop - only rendered when dropdown is open */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsOpen(false)}
+            style={{ backgroundColor: "transparent" }}
+          />
+
+          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between">
@@ -162,7 +167,9 @@ function NotificationBell({
                     <div className="mt-3">
                       <button
                         onClick={() => {
-                          console.log("Re-run query:", notification.queryId);
+                          if (onQueryRerun) {
+                            onQueryRerun(notification.queryId);
+                          }
                           setIsOpen(false);
                         }}
                         className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
