@@ -14,6 +14,7 @@ function App() {
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [viewAllMode, setViewAllMode] = useState(true);
   const [queryHistory, setQueryHistory] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   // Handle section selection from sidebar
   const handleSectionSelect = (sectionId, isViewAllMode) => {
@@ -66,6 +67,20 @@ function App() {
       { id: "section3", title: "Analysis" },
     ]);
 
+    // Add a notification when query is complete
+    const newNotification = {
+      id: `notification_${Date.now()}`,
+      title: "Query Complete",
+      message: `Analysis complete for: ${query}`,
+      priority: "needed", // or could be "urgent", "minor"
+      isRead: false,
+      timestamp: Date.now(),
+      source: "Query Engine",
+      queryId: id, // This is the queryId generated for the query
+    };
+
+    setNotifications((prev) => [newNotification, ...prev]);
+
     console.log("Query submitted successfully");
     setIsLoading(false);
   }
@@ -87,6 +102,22 @@ function App() {
       setCurrentQueryId(null);
     }
   }
+  // handle clicking a notification:
+  const handleNotificationClick = (notification) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+  };
+  // handle marking all notifications as read
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+  // Handle rerunning a query from notification
+  const handleQueryRerun = (queryId) => {
+    // Find the query in history and rerun it
+    const query = queryHistory.find((q) => q.id === queryId);
+    if (query) {
+      handleQuerySubmit(query.title);
+    }
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -116,7 +147,12 @@ function App() {
 
       {/* Main Content */}
       <div className="w-3/4 bg-gray-50 p-6 flex flex-col items-center">
-        <Header />
+        <Header
+          notifications={notifications}
+          onNotificationClick={handleNotificationClick}
+          onMarkAllRead={handleMarkAllRead}
+          onQueryRerun={handleQueryRerun}
+        />
         <QueryInput onSubmit={handleQuerySubmit} />
         <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
