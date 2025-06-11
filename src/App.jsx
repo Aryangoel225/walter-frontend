@@ -46,31 +46,28 @@ function App() {
 
   // Handle section selection from sidebar
   const handleSectionSelect = (sectionId, isViewAllMode) => {
-    if (isViewAllMode) {
-      // View All Mode: Just scroll to section in full report
-      setSelectedSectionId(null); // Clear any individual selection
-      setViewAllMode(true);
-      // Scroll will happen after render
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 100);
-    } else {
-      // Individual Mode: Show only that section
-      setSelectedSectionId(sectionId);
-      setViewAllMode(false);
-    }
-  };
+  if (isViewAllMode) {
+    setViewAllMode(true);
+    setSelectedSectionId(sectionId); // ← Keep track for scroll position
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  } else {
+    setSelectedSectionId(sectionId);
+    setViewAllMode(false);
+  }
+};
 
-  // Handle View All toggle from sidebar
-  const handleViewAllToggle = (isViewAll) => {
-    setViewAllMode(isViewAll);
-    if (isViewAll) {
-      setSelectedSectionId(null); // Clear individual selection
-    }
-  };
+ const handleViewAllToggle = (isViewAll) => {
+  setViewAllMode(isViewAll);
+  if (!isViewAll && sections.length > 0 && !selectedSectionId) {
+    // Auto-select first section when switching to individual mode
+    setSelectedSectionId(sections[0].id);
+  }
+};
 
   async function handleQuerySubmit(query) {
     console.log("Submitting query:", query);
