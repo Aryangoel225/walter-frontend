@@ -4,7 +4,8 @@ import TabNavigation from "./components/TabNavigation";
 import ReportContent from "./components/ReportContent";
 import SidebarSections from "./components/SidebarSections";
 import QueryHistory from "./components/QueryHistory";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { submitQuery, fetchReport } from "./utils/api";
 
 function App() {
   const [currentQueryId, setCurrentQueryId] = useState(null);
@@ -16,11 +17,39 @@ function App() {
   const [queryHistory, setQueryHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
+  // Fetch report when currentQueryId changes
+  useEffect(() => {
+    if (!currentQueryId) return;
+
+    setIsLoading(true);
+    setSections([]); // Clear previous sections
+
+    fetchReport(currentQueryId)
+      .then((data) => {
+        // data.sections is an object, convert to array with id prop
+        const sectionsArray = Object.entries(data.sections).map(([id, section]) => ({
+          id,
+          title: section.title,
+          content: section.content,
+        }));
+
+        setSections(sectionsArray);
+        setSelectedSectionId(sectionsArray.length > 0 ? sectionsArray[0].id : null);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch report:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [currentQueryId]);
+
   // Handle section selection from sidebar
   const handleSectionSelect = (sectionId, isViewAllMode) => {
     if (isViewAllMode) {
       // View All Mode: Just scroll to section in full report
       setSelectedSectionId(null); // Clear any individual selection
+      setViewAllMode(true);
       // Scroll will happen after render
       setTimeout(() => {
         const element = document.getElementById(sectionId);
@@ -47,43 +76,58 @@ function App() {
     console.log("Submitting query:", query);
     setIsLoading(true);
 
-    const id = `query_${Date.now()}`; // Generate once
-    const newQuery = {
-      id,
-      title: query,
-      date: new Date().toISOString(),
-    };
+    try {
+      // Submit query to backend and get query ID
+      const { query_id } = await submitQuery(query);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Create query history entry
+      const newQuery = {
+        id: query_id,
+        title: query,
+        date: new Date().toISOString(),
+      };
 
-    setQueryHistory((prev) => [newQuery, ...prev]);
-    setCurrentQueryId(id);
-    setActiveTab("report");
+      // Update UI state
+      setQueryHistory((prev) => [newQuery, ...prev]);
+      setCurrentQueryId(query_id);
+      setActiveTab("report");
 
-    setSections([
-      { id: "section1", title: "Executive Summary" },
-      { id: "section2", title: "Key Findings" },
-      { id: "section3", title: "Analysis" },
-    ]);
+      // Fetch the initial report
+      const reportData = await fetchReport(query_id);
 
-    // Add a notification when query is complete
-    const newNotification = {
-      id: `notification_${Date.now()}`,
-      title: "Query Complete",
-      message: `Analysis complete for: ${query}`,
-      priority: "needed", // or could be "urgent", "minor"
-      isRead: false,
-      timestamp: Date.now(),
-      source: "Query Engine",
-      queryId: id, // This is the queryId generated for the query
-    };
+      // Parse sections from the report data
+      const reportSections = Object.entries(reportData.sections || {}).map(
+        ([id, section]) => ({
+          id,
+          title: section.title || id,
+          content: section.content || ''
+        })
+      );
+      setSections(reportSections);
 
-    setNotifications((prev) => [newNotification, ...prev]);
-
-    console.log("Query submitted successfully");
-    setIsLoading(false);
+       // Add success notification
+      const newNotification = {
+        id: `notification_${Date.now()}`,
+        title: "Query Complete",
+        message: `Analysis complete for: ${query}`,
+        priority: "needed",
+        isRead: false,
+        timestamp: Date.now(),
+        source: "Query Engine",
+        queryId: query_id,
+      };
+      setNotifications((prev) => [newNotification, ...prev]);
+    } catch (error) {
+      console.error("Error processing query:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  const handleSectionChange = (newSectionId) => {
+    setSelectedSectionId(newSectionId);
+    setViewAllMode(false);
+  };
 
   function handleTabChange(newTab) {
     setActiveTab(newTab);
@@ -93,6 +137,7 @@ function App() {
     setCurrentQueryId(queryId);
     setActiveTab("report");
     setSelectedSectionId(null);
+    setViewAllMode(true);
   }
 
   function handleQueryDelete(queryId) {
@@ -100,16 +145,21 @@ function App() {
     // If user deletes the currently active query, reset it
     if (queryId === currentQueryId) {
       setCurrentQueryId(null);
+      setSections([]);
+      setSelectedSectionId(null);
     }
   }
+
   // handle clicking a notification:
   const handleNotificationClick = (notification) => {
     setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
   };
+
   // handle marking all notifications as read
   const handleMarkAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
+
   // Handle rerunning a query from notification
   const handleQueryRerun = (queryId) => {
     // Find the query in history and rerun it
@@ -161,9 +211,10 @@ function App() {
           <ReportContent
             currentQueryId={currentQueryId}
             isLoading={isLoading}
-            sections={sections} // ← Now passed!
-            selectedSectionId={selectedSectionId} // ← Now passed!
-            viewAllMode={viewAllMode} // ← Now passed!
+            sections={sections}
+            selectedSectionId={selectedSectionId}
+            viewAllMode={viewAllMode}
+            onSectionChange={handleSectionChange}
           />
         )}
         {activeTab === "knowledge-graph" && (
