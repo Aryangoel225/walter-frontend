@@ -102,3 +102,21 @@ function parseMarkdownIntoSections(markdown) {
 
     return sections;
 }
+
+/**
+ * Fetch knowledge graph data for a specific query
+ * @param {string} queryId - The ID of the query
+ * @returns {Promise<{nodes: Array, edges: Array}>}
+ */
+export async function fetchKnowledgeGraphData(queryId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/query/${queryId}/graph-data`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json(); // Should be { nodes: [...], edges: [...] }
+    } catch (error) {
+        console.error('Error fetching knowledge graph data:', error);
+        throw error;
+    }
+}

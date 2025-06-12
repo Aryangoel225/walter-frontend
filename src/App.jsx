@@ -4,8 +4,9 @@ import TabNavigation from "./components/TabNavigation";
 import ReportContent from "./components/ReportContent";
 import SidebarSections from "./components/SidebarSections";
 import QueryHistory from "./components/QueryHistory";
+import KnowledgeGraphView from "./components/KnowledgeGraphView";
 import { useState, useEffect } from "react";
-import { submitQuery, fetchReport } from "./utils/api";
+import { submitQuery, fetchReport, fetchKnowledgeGraphData } from "./utils/api";
 
 function App() {
   const [currentQueryId, setCurrentQueryId] = useState(null);
@@ -16,6 +17,9 @@ function App() {
   const [viewAllMode, setViewAllMode] = useState(true);
   const [queryHistory, setQueryHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
+  const [isGraphLoading, setIsGraphLoading] = useState(false);
+  const [graphError, setGraphError] = useState(null);
 
   // Fetch report when currentQueryId changes
   useEffect(() => {
@@ -27,14 +31,18 @@ function App() {
     fetchReport(currentQueryId)
       .then((data) => {
         // data.sections is an object, convert to array with id prop
-        const sectionsArray = Object.entries(data.sections).map(([id, section]) => ({
-          id,
-          title: section.title,
-          content: section.content,
-        }));
+        const sectionsArray = Object.entries(data.sections).map(
+          ([id, section]) => ({
+            id,
+            title: section.title,
+            content: section.content,
+          })
+        );
 
         setSections(sectionsArray);
-        setSelectedSectionId(sectionsArray.length > 0 ? sectionsArray[0].id : null);
+        setSelectedSectionId(
+          sectionsArray.length > 0 ? sectionsArray[0].id : null
+        );
       })
       .catch((error) => {
         console.error("Failed to fetch report:", error);
@@ -44,30 +52,51 @@ function App() {
       });
   }, [currentQueryId]);
 
+  // Fetch knowledge graph data when tab or query changes
+  useEffect(() => {
+    if (activeTab === "knowledge-graph" && currentQueryId) {
+      setIsGraphLoading(true);
+      setGraphError(null);
+      setGraphData({ nodes: [], edges: [] });
+      fetchKnowledgeGraphData(currentQueryId)
+        .then((data) => {
+          // Defensive: handle both {nodes, edges} and {nodes, relationships}
+          setGraphData({
+            nodes: data.nodes || [],
+            edges: data.edges || data.relationships || [],
+          });
+        })
+        .catch((err) => {
+          setGraphError(err.message || "Failed to load graph data");
+        })
+        .finally(() => setIsGraphLoading(false));
+    }
+  }, [activeTab, currentQueryId]);
+
   // Handle section selection from sidebar
   const handleSectionSelect = (sectionId, isViewAllMode) => {
-  if (isViewAllMode) {
-    setViewAllMode(true);
-    setSelectedSectionId(sectionId); // ← Keep track for scroll position
-    setTimeout(() => {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 100);
-  } else {
-    setSelectedSectionId(sectionId);
-    setViewAllMode(false);
-  }
-};
+    if (isViewAllMode) {
+      setViewAllMode(true);
+      setSelectedSectionId(sectionId); // ← Keep track for scroll position
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } else {
+      setSelectedSectionId(sectionId);
+      setViewAllMode(false);
+    }
+  };
 
- const handleViewAllToggle = (isViewAll) => {
-  setViewAllMode(isViewAll);
-  if (!isViewAll && sections.length > 0 && !selectedSectionId) {
-    // Auto-select first section when switching to individual mode
-    setSelectedSectionId(sections[0].id);
-  }
-};
+  const handleViewAllToggle = (isViewAll) => {
+    setViewAllMode(isViewAll);
+    if (!isViewAll && sections.length > 0 && !selectedSectionId) {
+      // Auto-select first section when switching to individual mode
+      setSelectedSectionId(sections[0].id);
+    }
+  };
 
   async function handleQuerySubmit(query) {
     console.log("Submitting query:", query);
@@ -97,12 +126,12 @@ function App() {
         ([id, section]) => ({
           id,
           title: section.title || id,
-          content: section.content || ''
+          content: section.content || "",
         })
       );
       setSections(reportSections);
 
-       // Add success notification
+      // Add success notification
       const newNotification = {
         id: `notification_${Date.now()}`,
         title: "Query Complete",
@@ -215,8 +244,23 @@ function App() {
           />
         )}
         {activeTab === "knowledge-graph" && (
-          <div className="text-center text-gray-400 mt-8">
-            Knowledge Graph content coming soon...
+          <div className="w-full max-w-3xl mx-auto mt-8">
+            {isGraphLoading ? (
+              <div className="text-center text-gray-400">
+                Loading knowledge graph...
+              </div>
+            ) : graphError ? (
+              <div className="text-center text-red-500">{graphError}</div>
+            ) : graphData.nodes.length === 0 ? (
+              <div className="text-center text-gray-400">
+                No graph data available for this query yet.
+              </div>
+            ) : (
+              <KnowledgeGraphView
+                nodes={graphData.nodes}
+                edges={graphData.edges}
+              />
+            )}
           </div>
         )}
         {activeTab === "knowledge-gaps" && (
