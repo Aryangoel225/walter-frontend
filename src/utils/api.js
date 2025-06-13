@@ -120,3 +120,21 @@ export async function fetchKnowledgeGraphData(queryId) {
         throw error;
     }
 }
+
+/**
+ * Fetch knowledge graph data for a specific query
+ * @param {string} queryId - The ID of the query
+ * @returns {Promise<{Object}>} - The knowledge gaps data
+ */
+export async function fetchKnowledgeGaps(queryId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/query/${queryId}/gaps`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json(); 
+    } catch (error) {
+        console.error('Error fetching knowledge gaps data:', error);
+        throw error;
+    }
+}

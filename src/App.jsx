@@ -5,8 +5,9 @@ import ReportContent from "./components/ReportContent";
 import SidebarSections from "./components/SidebarSections";
 import QueryHistory from "./components/QueryHistory";
 import KnowledgeGraphView from "./components/KnowledgeGraphView";
+import KnowledgeGapsView from "./components/KnowledgeGapsView";
 import { useState, useEffect } from "react";
-import { submitQuery, fetchReport, fetchKnowledgeGraphData } from "./utils/api";
+import { submitQuery, fetchReport, fetchKnowledgeGraphData, fetchKnowledgeGaps } from "./utils/api";
 
 function App() {
   const [currentQueryId, setCurrentQueryId] = useState(null);
@@ -17,11 +18,18 @@ function App() {
   const [viewAllMode, setViewAllMode] = useState(true);
   const [queryHistory, setQueryHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
+
+  // Knowledge graph state
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
   const [isGraphLoading, setIsGraphLoading] = useState(false);
   const [graphError, setGraphError] = useState(null);
+  // knowledge gaps state
+  const [knowledgeGaps, setKnowledgeGaps] = useState({gaps: [], follow_up_queries: [] });
+  const [isGapsLoading, setIsGapsLoading] = useState(false);
+  const [gapsError, setGapsError] = useState(null);
 
   // Fetch report when currentQueryId changes
+
   useEffect(() => {
     if (!currentQueryId) return;
 
@@ -68,6 +76,49 @@ function App() {
         })
         .catch((err) => {
           setGraphError(err.message || "Failed to load graph data");
+        })
+        .finally(() => setIsGraphLoading(false));
+    }
+  }, [activeTab, currentQueryId]);
+
+
+  // Fetch knowledge graph data when tab or query changes
+  useEffect(() => {
+  if (activeTab === "knowledge-gaps" && currentQueryId) {
+    setIsGapsLoading(true);
+    setGapsError(null);
+    setKnowledgeGaps({ gaps: [], follow_up_queries: [] });
+    fetchKnowledgeGaps(currentQueryId)
+      .then((data) => {
+        // Defensive: handle both {gaps, follow_up_queries}
+        setKnowledgeGaps({
+          gaps: data.gaps || [],
+          follow_up_queries: data.follow_up_queries || [],
+        });
+      })
+      .catch((err) => {
+        setGapsError(err.message || "Failed to load knowledge gaps data");
+      })
+      .finally(() => setIsGapsLoading(false));
+  }
+}, [activeTab, currentQueryId]);
+
+  // Fetch knowledge gaps data when tab or query changes
+  useEffect(() => {
+    if (activeTab === "knowledge-gaps" && currentQueryId) {
+      setIsGapsLoading(true);
+      setGapsError(null);
+      setKnowledgeGaps({ gaps: [], follow_up_queries: [] });
+      fetchKnowledgeGaps(currentQueryId)
+        .then((data) => {
+          // Defensive: handle both {gaps, follow_up_queries}
+          setKnowledgeGaps({
+            knowledgeGaps: data.gaps || [],
+            follow_up_queries: data.follow_up_queries || [],
+          });
+        })
+        .catch((err) => {
+          setGapsError(err.message || "Failed to load gapsError data");
         })
         .finally(() => setIsGraphLoading(false));
     }
@@ -264,8 +315,19 @@ function App() {
           </div>
         )}
         {activeTab === "knowledge-gaps" && (
-          <div className="text-center text-gray-400 mt-8">
-            Knowledge Gaps content coming soon...
+          <div className="w-full max-w-3xl mx-auto mt-8">
+            {isGapsLoading ? (
+              <div className="text-center text-gray-400">
+                Loading knowledge gaps...
+              </div>
+            ) : gapsError ? (
+              <div className="text-center text-red-500">{gapsError}</div>
+            ) : (
+              <KnowledgeGapsView
+                gaps={knowledgeGaps.gaps}
+                follow_up_queries={knowledgeGaps.follow_up_queries}
+              />
+            )}
           </div>
         )}
       </div>
@@ -274,3 +336,5 @@ function App() {
 }
 
 export default App;
+
+

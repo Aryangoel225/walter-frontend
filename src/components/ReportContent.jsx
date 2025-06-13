@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ReportContent({
   currentQueryId,
@@ -111,10 +113,12 @@ export default function ReportContent({
               {/* Section Content */}
               <div className="p-6">
                 <div className="prose max-w-none">
-                  <div
+                  <ReactMarkdown
                     className="text-gray-700 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
-                  />
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {section.content}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>
